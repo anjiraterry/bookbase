@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBooksByGenre } from '@/server/controller/bookController'
 
-interface RouteParams {
-  params: {
-    genre: string
-  }
-}
-
 interface CustomError {
   message?: string
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: Promise<{ genre: string }> }
 ) {
   try {
-    console.log('GET books by genre API called for genre:', params.genre)
+    const { genre } = await params
+    console.log('GET books by genre API called for genre:', genre)
     
-   
-    const books = await getBooksByGenre(params.genre)
+    const books = await getBooksByGenre(genre)
     
-    console.log('Books by genre retrieved successfully:', books.length, 'books for genre:', params.genre)
+    console.log('Books by genre retrieved successfully:', books.length, 'books for genre:', genre)
     
-
     return NextResponse.json(books)
   } catch (error) {
     const customError = error as CustomError
