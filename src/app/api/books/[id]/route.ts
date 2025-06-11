@@ -10,12 +10,13 @@ interface CustomError {
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('GET book API called for ID:', context.params.id)
+    const { id } = await params
+    console.log('GET book API called for ID:', id)
     
-    const book = await getBookById(context.params.id)
+    const book = await getBookById(id)
     
     console.log('Book retrieved successfully:', book)
     
@@ -32,10 +33,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('PUT book API called for ID:', context.params.id)
+    const { id } = await params
+    console.log('PUT book API called for ID:', id)
     
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -70,7 +72,7 @@ export async function PUT(
 
     console.log('Validated data:', validation.data)
     
-    const updatedBook = await updateBook(context.params.id, validation.data, decoded.role)
+    const updatedBook = await updateBook(id, validation.data, decoded.role)
     
     console.log('Book updated successfully:', updatedBook)
     
@@ -87,10 +89,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('DELETE book API called for ID:', context.params.id)
+    const { id } = await params
+    console.log('DELETE book API called for ID:', id)
     
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -110,7 +113,7 @@ export async function DELETE(
       )
     }
     
-    const result = await deleteBook(context.params.id, decoded.role)
+    const result = await deleteBook(id, decoded.role)
     
     console.log('Book deleted successfully:', result)
     
