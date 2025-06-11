@@ -5,7 +5,7 @@ interface DatabaseBook {
   id: string
   title: string
   isbn: string
-  revision_number?: number
+  revision_number?: string
   published_date?: string
   publisher?: string
   authors: string[]
@@ -46,7 +46,7 @@ interface CustomError {
 interface UpdateData {
   title?: string
   isbn?: string
-  revision_number?: number
+  revision_number?: string
   published_date?: string
   publisher?: string
   authors?: string[]
