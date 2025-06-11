@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return await getProfile(decoded.userId)
+    const profileData = await getProfile(decoded.userId)
+    return NextResponse.json(profileData)
   } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
