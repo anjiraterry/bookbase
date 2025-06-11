@@ -3,12 +3,6 @@ import { getBookById, updateBook, deleteBook } from '@/server/controller/bookCon
 import { verifyToken } from '@/server/lib/serverUtils'
 import { updateBookSchema } from '@/server/lib/validations'
 
-interface RouteParams {
-  params: {
-    id: string
-  }
-}
-
 interface CustomError {
   message?: string
   status?: number
@@ -16,17 +10,15 @@ interface CustomError {
 
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: { id: string } }
 ) {
   try {
     console.log('GET book API called for ID:', params.id)
     
-   
     const book = await getBookById(params.id)
     
     console.log('Book retrieved successfully:', book)
     
-  
     return NextResponse.json(book)
   } catch (error) {
     const customError = error as CustomError
@@ -40,7 +32,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: { id: string } }
 ) {
   try {
     console.log('PUT book API called for ID:', params.id)
@@ -78,12 +70,10 @@ export async function PUT(
 
     console.log('Validated data:', validation.data)
     
-
     const updatedBook = await updateBook(params.id, validation.data, decoded.role)
     
     console.log('Book updated successfully:', updatedBook)
     
-
     return NextResponse.json(updatedBook)
   } catch (error) {
     const customError = error as CustomError
@@ -97,7 +87,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: { id: string } }
 ) {
   try {
     console.log('DELETE book API called for ID:', params.id)
@@ -119,13 +109,11 @@ export async function DELETE(
         { status: 401 }
       )
     }
-
-  
+    
     const result = await deleteBook(params.id, decoded.role)
     
     console.log('Book deleted successfully:', result)
     
-   
     return NextResponse.json(result)
   } catch (error) {
     const customError = error as CustomError
