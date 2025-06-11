@@ -24,7 +24,6 @@ export async function updateProfile(userId: string, data: UpdateProfileInput) {
       throw new Error('Failed to update profile')
     }
 
-    // Transform to camelCase for frontend
     const userResponse = {
       id: updatedUser.id,
       email: updatedUser.email,
@@ -38,7 +37,7 @@ export async function updateProfile(userId: string, data: UpdateProfileInput) {
       updatedAt: updatedUser.updated_at
     }
 
-    // Return plain object (not NextResponse)
+
     return {
       user: userResponse,
       message: 'Profile updated successfully'
@@ -62,17 +61,16 @@ export async function changePassword(userId: string, data: ChangePasswordInput) 
       throw new Error('User not found')
     }
 
-    // Verify current password
+   
     const isValidPassword = await verifyPassword(data.currentPassword, user.password_hash)
     
     if (!isValidPassword) {
       throw new Error('Current password is incorrect')
     }
 
-    // Hash new password
+  
     const newPasswordHash = await hashPassword(data.newPassword)
 
-    // Update password
     const { error } = await supabase
       .from('users')
       .update({ 
@@ -86,7 +84,6 @@ export async function changePassword(userId: string, data: ChangePasswordInput) 
       throw new Error('Failed to update password')
     }
 
-    // Return plain object (not NextResponse)
     return {
       message: 'Password changed successfully'
     }
@@ -137,7 +134,7 @@ export async function getAllUsers(requestingUserRole: string) {
 
 export async function getUserById(userId: string, requestingUserId: string, requestingUserRole: string) {
   try {
-    // Users can only view their own profile, unless they're a librarian
+  
     if (requestingUserRole !== 'librarian' && userId !== requestingUserId) {
       throw new Error('Access denied')
     }
@@ -152,7 +149,7 @@ export async function getUserById(userId: string, requestingUserId: string, requ
       throw new Error('User not found')
     }
 
-    // Transform to camelCase for frontend
+  
     const userResponse = {
       id: user.id,
       email: user.email,
@@ -166,7 +163,7 @@ export async function getUserById(userId: string, requestingUserId: string, requ
       updatedAt: user.updated_at
     }
 
-    // Return plain object (not NextResponse)
+    
     return {
       user: userResponse,
       message: 'User retrieved successfully'
@@ -179,7 +176,7 @@ export async function getUserById(userId: string, requestingUserId: string, requ
 
 export async function deleteUser(userId: string, requestingUserRole: string) {
   try {
-    // Only librarians can delete users
+ 
     if (requestingUserRole !== 'librarian') {
       throw new Error('Librarian access required')
     }
@@ -194,7 +191,7 @@ export async function deleteUser(userId: string, requestingUserRole: string) {
       throw new Error('Failed to delete user')
     }
 
-    // Return plain object (not NextResponse)
+
     return {
       message: 'User deleted successfully'
     }

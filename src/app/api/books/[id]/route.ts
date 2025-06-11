@@ -9,6 +9,11 @@ interface RouteParams {
   }
 }
 
+interface CustomError {
+  message?: string
+  status?: number
+}
+
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
@@ -16,17 +21,18 @@ export async function GET(
   try {
     console.log('GET book API called for ID:', params.id)
     
-    // Get book from controller (returns plain data now)
+   
     const book = await getBookById(params.id)
     
     console.log('Book retrieved successfully:', book)
     
-    // Wrap in NextResponse.json()
+  
     return NextResponse.json(book)
-  } catch (error: any) {
-    console.error('Get book API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Get book API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }
@@ -72,17 +78,18 @@ export async function PUT(
 
     console.log('Validated data:', validation.data)
     
-    // Update book from controller (returns plain data now)
+
     const updatedBook = await updateBook(params.id, validation.data, decoded.role)
     
     console.log('Book updated successfully:', updatedBook)
     
-    // Wrap in NextResponse.json()
+
     return NextResponse.json(updatedBook)
-  } catch (error: any) {
-    console.error('Update book API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Update book API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }
@@ -113,17 +120,18 @@ export async function DELETE(
       )
     }
 
-    // Delete book from controller (returns plain data now)
+  
     const result = await deleteBook(params.id, decoded.role)
     
     console.log('Book deleted successfully:', result)
     
-    // Wrap in NextResponse.json()
+   
     return NextResponse.json(result)
-  } catch (error: any) {
-    console.error('Delete book API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Delete book API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

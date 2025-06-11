@@ -46,7 +46,7 @@ export const bookSchema = z.object({
   genre: z.string().optional(),
   description: z.string().optional(),
   totalCopies: z.number().min(1, 'Must have at least 1 copy').default(1),
-  revisionNumber: z.string().optional(),
+  revisionNumber: z.number().optional(),
   coverImageUrl: z.string().url('Invalid URL').optional().or(z.literal(''))
 })
 

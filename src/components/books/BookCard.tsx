@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,10 @@ interface BookCardProps {
   isFavorite?: boolean
 }
 
+interface BookWithCoverUrl extends Book {
+  coverImageUrl?: string
+}
+
 export const BookCard: React.FC<BookCardProps> = ({
   book,
   userRole,
@@ -33,8 +38,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [showCheckoutDialog, setShowCheckoutDialog] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
-  // Get image URL from either camelCase or snake_case
-  const imageUrl = book.cover_image_url || (book as any).coverImageUrl
+  const imageUrl = book.cover_image_url || (book as BookWithCoverUrl).coverImageUrl
 
   const handleImageLoad = () => {
     setImageLoading(false)
@@ -59,13 +63,11 @@ export const BookCard: React.FC<BookCardProps> = ({
       setShowCheckoutDialog(false)
     } catch (error) {
       console.error('Checkout failed:', error)
-      // Error handling is done in the parent component
     } finally {
       setIsCheckingOut(false)
     }
   }
 
-  // Reset loading state when imageUrl changes
   React.useEffect(() => {
     if (imageUrl) {
       setImageLoading(true)
@@ -79,44 +81,40 @@ export const BookCard: React.FC<BookCardProps> = ({
     <>
       <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer">
         <CardContent className="p-0">
-          {/* Book Cover */}
           <div className="relative aspect-[3/4] bg-gray-100 rounded-t-lg overflow-hidden">
-            {/* Show loading state */}
             {imageLoading && imageUrl && !imageError && (
               <div className="w-full h-full flex items-center justify-center bg-gray-200">
                 <div className="animate-pulse text-gray-400">Loading...</div>
               </div>
             )}
 
-            {/* Show image if URL exists and no error */}
             {imageUrl && !imageError && (
-              <img
+              <Image
                 src={imageUrl}
                 alt={book.title}
-                className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 ${
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className={`object-cover group-hover:scale-105 transition-transform duration-200 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
                 }`}
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                loading="lazy"
+                priority={false}
               />
             )}
 
-            {/* Show fallback if no URL or image failed to load */}
             {(!imageUrl || imageError) && !imageLoading && (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
                 <BookOpen className="h-12 w-12 text-blue-500" />
               </div>
             )}
 
-            {/* Status Badge */}
             <div className="absolute top-2 left-2">
               <Badge variant={isAvailable ? "default" : "secondary"}>
                 {isAvailable ? 'Available' : 'Checked Out'}
               </Badge>
             </div>
 
-            {/* Favorite Button */}
             {userRole === 'reader' && (
               <Button
                 variant="ghost"
@@ -131,7 +129,6 @@ export const BookCard: React.FC<BookCardProps> = ({
               </Button>
             )}
 
-            {/* Action Buttons Overlay */}
             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
               <div className="flex gap-2">
                 <Button
@@ -173,7 +170,6 @@ export const BookCard: React.FC<BookCardProps> = ({
             </div>
           </div>
 
-          {/* Book Info */}
           <div className="p-4 space-y-2">
             <div>
               <h3 className="font-semibold text-sm line-clamp-2 text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -184,7 +180,6 @@ export const BookCard: React.FC<BookCardProps> = ({
               </p>
             </div>
 
-            {/* Rating */}
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="h-3 w-3 text-yellow-500 fill-current" />
@@ -192,7 +187,6 @@ export const BookCard: React.FC<BookCardProps> = ({
               <span className="text-xs text-gray-500 ml-1">4.5</span>
             </div>
 
-            {/* Additional Info */}
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>{book.publisher}</span>
               {book.published_date && (
@@ -200,14 +194,12 @@ export const BookCard: React.FC<BookCardProps> = ({
               )}
             </div>
 
-            {/* Genre */}
             {book.genre && (
               <Badge variant="outline" className="text-xs">
                 {book.genre.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </Badge>
             )}
 
-            {/* Copy Count for Librarians */}
             {userRole === 'librarian' && (
               <div className="text-xs text-gray-500 pt-1 border-t border-gray-100">
                 {book.available_copies}/{book.total_copies} available
@@ -217,7 +209,6 @@ export const BookCard: React.FC<BookCardProps> = ({
         </CardContent>
       </Card>
 
-      {/* Checkout Confirmation Dialog */}
       <Dialog open={showCheckoutDialog} onOpenChange={setShowCheckoutDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -226,7 +217,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               Checkout Book
             </DialogTitle>
             <DialogDescription>
-              You are about to checkout "{book.title}" by {book.authors.join(', ')}.
+              You are about to checkout &quot;{book.title}&quot; by {book.authors.join(', ')}.
             </DialogDescription>
           </DialogHeader>
 

@@ -1,11 +1,12 @@
 'use client'
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Book } from '../../types/database'
-import { BookOpen, Calendar, User, Building, Hash, Star, Heart, Clock, CheckCircle } from 'lucide-react'
+import { BookOpen, Calendar, Building, Hash, Star, Heart, Clock, CheckCircle } from 'lucide-react'
 
 interface BookDetailPanelProps {
   book: Book | null
@@ -14,6 +15,10 @@ interface BookDetailPanelProps {
   onEdit?: (book: Book) => void
   onToggleFavorite?: (book: Book) => void
   isFavorite?: boolean
+}
+
+interface BookWithCoverUrl extends Book {
+  coverImageUrl?: string
 }
 
 export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
@@ -27,6 +32,27 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
   const [imageLoading, setImageLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+
+  const handleImageLoad = () => {
+    setImageLoading(false)
+  }
+
+  const handleImageError = () => {
+    setImageError(true)
+    setImageLoading(false)
+  }
+
+  React.useEffect(() => {
+    if (book) {
+      const imageUrl = book.cover_image_url || (book as BookWithCoverUrl).coverImageUrl
+      if (imageUrl) {
+        setImageLoading(true)
+        setImageError(false)
+      } else {
+        setImageLoading(false)
+      }
+    }
+  }, [book])
 
   if (!book) {
     return (
@@ -42,28 +68,7 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
   }
 
   const isAvailable = book.available_copies > 0
-  
-  // Get image URL from either camelCase or snake_case
-  const imageUrl = book.cover_image_url || (book as any).coverImageUrl
-
-  const handleImageLoad = () => {
-    setImageLoading(false)
-  }
-
-  const handleImageError = () => {
-    setImageError(true)
-    setImageLoading(false)
-  }
-
-  // Reset loading state when book or imageUrl changes
-  React.useEffect(() => {
-    if (imageUrl) {
-      setImageLoading(true)
-      setImageError(false)
-    } else {
-      setImageLoading(false)
-    }
-  }, [imageUrl, book?.id])
+  const imageUrl = book.cover_image_url || (book as BookWithCoverUrl).coverImageUrl
 
   const handleCheckout = async () => {
     if (!onCheckout) return
@@ -78,7 +83,6 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
     }
   }
 
-  // Calculate due date (10 days from now)
   const getDueDate = () => {
     const dueDate = new Date()
     dueDate.setDate(dueDate.getDate() + 10)
@@ -108,31 +112,29 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Book Cover and Rating */}
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-32 h-44 bg-gray-100 rounded-lg overflow-hidden shadow-md">
-            {/* Show loading state */}
+          <div className="relative w-32 h-44 bg-gray-100 rounded-lg overflow-hidden shadow-md">
             {imageLoading && imageUrl && !imageError && (
               <div className="w-full h-full flex items-center justify-center bg-gray-200">
                 <div className="animate-pulse text-gray-400">Loading...</div>
               </div>
             )}
 
-            {/* Show image if URL exists and no error */}
             {imageUrl && !imageError && (
-              <img
+              <Image
                 src={imageUrl}
                 alt={book.title}
-                className={`w-full h-full object-cover transition-opacity duration-200 ${
+                fill
+                sizes="128px"
+                className={`object-cover transition-opacity duration-200 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
                 }`}
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                loading="lazy"
+                priority={false}
               />
             )}
 
-            {/* Show fallback if no URL or image failed to load */}
             {(!imageUrl || imageError) && !imageLoading && (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
                 <BookOpen className="h-8 w-8 text-blue-500" />
@@ -140,7 +142,6 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
             )}
           </div>
 
-          {/* Rating */}
           <div className="flex items-center space-x-2">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
@@ -151,13 +152,11 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
             <span className="text-sm text-gray-500">(320 ratings)</span>
           </div>
 
-          {/* Status and Action Buttons */}
           <div className="text-center space-y-3 w-full">
             <Badge variant={isAvailable ? "default" : "secondary"} className="text-sm">
               {isAvailable ? `${book.available_copies} Available` : 'All Copies Checked Out'}
             </Badge>
 
-            {/* Checkout Details for Readers */}
             {userRole === 'reader' && (
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm space-y-3">
                 <div className="flex items-center justify-center gap-2 text-blue-800 font-medium">
@@ -210,7 +209,6 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
 
         <Separator />
 
-        {/* Book Statistics */}
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-2xl font-bold text-blue-600">{book.total_copies}</p>
@@ -228,7 +226,6 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
 
         <Separator />
 
-        {/* Book Information */}
         <div className="space-y-3">
           <div className="flex items-center space-x-3">
             <Hash className="h-4 w-4 text-gray-400" />
@@ -274,7 +271,6 @@ export const BookDetailPanel: React.FC<BookDetailPanelProps> = ({
 
         <Separator />
 
-        {/* Description */}
         {book.description && (
           <div>
             <h4 className="font-medium text-sm mb-2">Description</h4>

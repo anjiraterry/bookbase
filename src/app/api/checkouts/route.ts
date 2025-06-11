@@ -3,6 +3,10 @@ import { checkoutBook, getAllCheckouts } from '@/server/controller/checkoutContr
 import { verifyToken } from '@/server/lib/serverUtils'
 import { checkoutSchema } from '@/server/lib/validations'
 
+interface CustomError {
+  message?: string
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('GET all checkouts API called')
@@ -27,17 +31,16 @@ export async function GET(request: NextRequest) {
 
     console.log('Getting all checkouts for role:', decoded.role)
     
-    // Get all checkouts from controller (returns plain data now)
     const checkouts = await getAllCheckouts(decoded.role)
     
     console.log('All checkouts retrieved successfully:', checkouts.length, 'checkouts')
     
-    // Wrap in NextResponse.json()
     return NextResponse.json(checkouts)
-  } catch (error: any) {
-    console.error('Get all checkouts API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Get all checkouts API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }
@@ -80,17 +83,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Validated checkout data:', validation.data)
     
-    // Checkout book from controller (returns plain data now)
     const result = await checkoutBook(validation.data, decoded.userId, decoded.role)
     
     console.log('Book checked out successfully')
     
-    // Wrap in NextResponse.json() with 201 status for creation
     return NextResponse.json(result, { status: 201 })
-  } catch (error: any) {
-    console.error('Checkout book API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Checkout book API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

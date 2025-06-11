@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server'
 
-export function handleDatabaseError(error: any) {
+interface DatabaseError {
+  code?: string
+  message?: string
+  details?: string
+  hint?: string
+}
+
+interface ControllerError {
+  message?: string
+  stack?: string
+  code?: string
+}
+
+export function handleDatabaseError(error: DatabaseError) {
   console.error('Database error:', error)
   
   if (error.code === '23505') { // Unique constraint violation
@@ -23,7 +36,7 @@ export function handleDatabaseError(error: any) {
   )
 }
 
-export function handleControllerError(error: any) {
+export function handleControllerError(error: ControllerError) {
   console.error('Controller error:', error)
   
   return NextResponse.json(

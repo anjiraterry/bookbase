@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getOverdueCheckoutsForEmail } from '@/server/controller/checkoutController'
 import { emailService } from '@/lib/email'
 
-export async function GET(request: NextRequest) {
+interface CustomError {
+  message?: string
+}
+
+export async function GET(_request: NextRequest) {
   try {
     console.log('Running overdue notifications cron job...')
     
-    // Get all overdue checkouts
     const overdueCheckouts = await getOverdueCheckoutsForEmail()
     
     if (overdueCheckouts.length === 0) {
@@ -17,7 +20,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Send email to librarian
     const librarianEmail = process.env.LIBRARIAN_EMAIL
     if (!librarianEmail) {
       throw new Error('LIBRARIAN_EMAIL environment variable not set')
@@ -38,10 +40,11 @@ export async function GET(request: NextRequest) {
     } else {
       throw new Error('Failed to send overdue email')
     }
-  } catch (error: any) {
-    console.error('Error in overdue cron job:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in overdue cron job:', customError)
     return NextResponse.json(
-      { error: 'Failed to send overdue notifications', details: error.message },
+      { error: 'Failed to send overdue notifications', details: customError.message },
       { status: 500 }
     )
   }

@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { register } from '@/server/controller/authController'
 import { registerSchema } from '@/server/lib/validations'
+import { ZodError } from 'zod'
+
+interface CustomError {
+  name?: string
+  message?: string
+  status?: number
+  errors?: unknown[]
+}
 
 export async function POST(request: NextRequest) {
   try {
     console.log('=== REGISTER API ROUTE CALLED ===')
     
-    // Parse JSON request body
+
     const body = await request.json()
     console.log('📦 Request body:', body)
     
-    // Validate the data
+
     const validatedData = registerSchema.parse(body)
     console.log('✅ Data validated:', validatedData)
     
-    // Call register function with validated data
+  
     const result = await register(validatedData)
     
     console.log('=== API ROUTE REGISTER RESULT ===')
@@ -24,19 +32,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { status: 201 })
     
-  } catch (error: any) {
-    console.error('Register API route error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Register API route error:', customError)
     
-    if (error.name === 'ZodError') {
+    if (customError.name === 'ZodError' || error instanceof ZodError) {
+      const zodError = error as ZodError
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { error: 'Invalid input', details: zodError.errors },
         { status: 400 }
       )
     }
     
     return NextResponse.json(
-      { error: error.message || 'Registration failed' },
-      { status: error.status || 500 }
+      { error: customError.message || 'Registration failed' },
+      { status: customError.status || 500 }
     )
   }
 }

@@ -1,11 +1,11 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { BookCard } from './BookCard'
 import { BookModal } from './BookModal'
 import { BookOpen } from 'lucide-react'
 import { Book } from '../../types/database'
 import { booksAPI } from '../../lib/api'
-import { useCheckouts } from '../../hooks/useCheckouts' // Add this import
+import { useCheckouts } from '../../hooks/useCheckouts'
 
 interface BookGridProps {
   userRole: 'librarian' | 'reader'
@@ -39,12 +39,22 @@ interface UpdateBookInput {
   revisionNumber?: string
 }
 
+interface CustomError {
+  message?: string
+}
+
+interface SearchParams {
+  page: number
+  limit: number
+  title?: string
+  genre?: string
+}
+
 export const BookGrid: React.FC<BookGridProps> = ({
   userRole,
   searchQuery = '',
   selectedCategory = 'all'
 }) => {
-  // Add the useCheckouts hook
   const { checkoutBook } = useCheckouts()
   
   const [selectedBook, setSelectedBook] = useState<Book | null>(null)
@@ -60,18 +70,16 @@ export const BookGrid: React.FC<BookGridProps> = ({
     totalPages: 0
   })
 
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       
-      // Build search parameters
-      const params: any = {
+      const params: SearchParams = {
         page: pagination.page,
         limit: pagination.limit
       }
 
-      // Add search filters
       if (searchQuery) {
         params.title = searchQuery
       }
@@ -85,36 +93,32 @@ export const BookGrid: React.FC<BookGridProps> = ({
       
       console.log('Books API response:', response)
       
-      // Handle the response structure from your API
       if (response.books) {
         setBooks(response.books)
         setPagination(response.pagination)
       } else {
-        // Fallback if response structure is different
         setBooks(Array.isArray(response) ? response : [])
       }
-    } catch (error: any) {
-      console.error('Error fetching books:', error)
+    } catch (error) {
+      const customError = error as CustomError
+      console.error('Error fetching books:', customError)
       setError('Failed to load books. Please try again.')
       setBooks([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.page, pagination.limit, searchQuery, selectedCategory])
 
-  // Fetch books on component mount and when search parameters change
   useEffect(() => {
     fetchBooks()
-  }, [searchQuery, selectedCategory, pagination.page])
+  }, [fetchBooks])
 
-  // Reset to page 1 when search changes
   useEffect(() => {
     if (pagination.page !== 1) {
       setPagination(prev => ({ ...prev, page: 1 }))
     }
-  }, [searchQuery, selectedCategory])
+  }, [searchQuery, selectedCategory, pagination.page])
 
-  // Client-side filtering for additional refinement
   const filteredBooks = books.filter(book => {
     const matchesSearch = !searchQuery || 
       book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -139,33 +143,26 @@ export const BookGrid: React.FC<BookGridProps> = ({
     setIsModalOpen(true)
   }
 
-  // Updated handleCheckout function with actual implementation
   const handleCheckout = async (book: Book) => {
     try {
       console.log('Checking out book:', book.title)
       
-      // Call the checkout API
       await checkoutBook(book.id)
       
-      // Show success message
       alert(`Successfully checked out "${book.title}"! You can view your checkouts in the My Checkouts section.`)
       
-      // Refresh the books list to update available copies
       await fetchBooks()
       
-    } catch (error: any) {
-      console.error('Checkout failed:', error)
-      // Show error message
-      alert(`Failed to checkout "${book.title}": ${error.message}`)
-      // Re-throw the error so BookCard can handle loading states properly
+    } catch (error) {
+      const customError = error as CustomError
+      console.error('Checkout failed:', customError)
+      alert(`Failed to checkout "${book.title}": ${customError.message}`)
       throw error
     }
   }
 
   const handleToggleFavorite = (book: Book) => {
-    // Handle favorite toggle logic
     console.log('Toggling favorite for book:', book.title)
-    // TODO: Implement favorites functionality
     alert('Favorites functionality coming soon!')
   }
 
@@ -214,15 +211,13 @@ export const BookGrid: React.FC<BookGridProps> = ({
         console.log('Book created successfully')
       }
       
-      // Refresh the books list
       await fetchBooks()
       
-      // Close modal
       closeModal()
-    } catch (error: any) {
-      console.error('Error saving book:', error)
-      // TODO: Show error toast/notification
-      alert(`Error saving book: ${error.message || 'Unknown error'}`)
+    } catch (error) {
+      const customError = error as CustomError
+      console.error('Error saving book:', customError)
+      alert(`Error saving book: ${customError.message || 'Unknown error'}`)
     }
   }
 
@@ -231,7 +226,6 @@ export const BookGrid: React.FC<BookGridProps> = ({
     setSelectedBook(null)
   }
 
-  // Loading state
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -242,7 +236,6 @@ export const BookGrid: React.FC<BookGridProps> = ({
     )
   }
 
-  // Error state
   if (error) {
     return (
       <div className="text-center py-12">
@@ -271,12 +264,11 @@ export const BookGrid: React.FC<BookGridProps> = ({
             onEdit={userRole === 'librarian' ? handleEdit : undefined}
             onCheckout={userRole === 'reader' ? handleCheckout : undefined}
             onToggleFavorite={userRole === 'reader' ? handleToggleFavorite : undefined}
-            isFavorite={false} // This would come from user's favorites data
+            isFavorite={false}
           />
         ))}
       </div>
 
-      {/* Empty state */}
       {filteredBooks.length === 0 && !loading && (
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -298,7 +290,6 @@ export const BookGrid: React.FC<BookGridProps> = ({
         </div>
       )}
 
-      {/* Pagination (if needed) */}
       {pagination.totalPages > 1 && (
         <div className="flex justify-center items-center space-x-2 mt-6">
           <button
@@ -321,7 +312,6 @@ export const BookGrid: React.FC<BookGridProps> = ({
         </div>
       )}
 
-      {/* Book Modal */}
       <BookModal
         mode={modalMode}
         book={selectedBook || undefined}

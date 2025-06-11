@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
+interface ValidationResult<T> {
+  data: T | null
+  error: NextResponse | null
+}
+
+interface ProcessedParams {
+  [key: string]: string | number
+}
+
 export function validateBody<T>(schema: z.ZodSchema<T>) {
-  return async (req: NextRequest): Promise<{ data: T; error: NextResponse | null }> => {
+  return async (req: NextRequest): Promise<ValidationResult<T>> => {
     try {
       const body = await req.json()
       const data = schema.parse(body)
@@ -10,7 +19,7 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
     } catch (error) {
       if (error instanceof z.ZodError) {
         return {
-          data: null as any,
+          data: null,
           error: NextResponse.json(
             {
               success: false,
@@ -22,7 +31,7 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
         }
       }
       return {
-        data: null as any,
+        data: null,
         error: NextResponse.json(
           { success: false, error: 'Invalid JSON' },
           { status: 400 }
@@ -33,7 +42,7 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
 }
 
 export function validateQuery<T>(schema: z.ZodSchema<T>) {
-  return (req: NextRequest): { data: T; error: NextResponse | null } => {
+  return (req: NextRequest): ValidationResult<T> => {
     try {
       const url = new URL(req.url)
       const queryParams = Object.fromEntries(url.searchParams.entries())
@@ -46,14 +55,14 @@ export function validateQuery<T>(schema: z.ZodSchema<T>) {
           acc[key] = value
         }
         return acc
-      }, {} as any)
+      }, {} as ProcessedParams)
 
       const data = schema.parse(processedParams)
       return { data, error: null }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return {
-          data: null as any,
+          data: null,
           error: NextResponse.json(
             {
               success: false,
@@ -65,7 +74,7 @@ export function validateQuery<T>(schema: z.ZodSchema<T>) {
         }
       }
       return {
-        data: null as any,
+        data: null,
         error: NextResponse.json(
           { success: false, error: 'Invalid query parameters' },
           { status: 400 }

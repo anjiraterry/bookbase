@@ -1,7 +1,11 @@
 // src/app/api/users/upload-image/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import {  supabaseAdmin } from '@/server/lib/supabase'
+import { supabaseAdmin } from '@/server/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
+
+interface CustomError {
+  message?: string
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,28 +16,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file received' }, { status: 400 })
     }
 
-    // Validate file type
+  
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 })
     }
 
-    // Validate file size (5MB limit)
+   
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json({ error: 'File size must be less than 5MB' }, { status: 400 })
     }
 
-    // Get file extension
+ 
     const fileExtension = file.name.split('.').pop()
     
-    // Generate unique filename
+ 
     const fileName = `${uuidv4()}.${fileExtension}`
     
-    // Convert file to buffer
+
     const fileBuffer = await file.arrayBuffer()
 
     console.log('Uploading file to Supabase:', fileName)
 
-    // Upload to Supabase Storage using admin client (bypasses RLS)
+   
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('profile-images')
       .upload(fileName, fileBuffer, {
@@ -49,7 +53,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the public URL using admin client
     const { data: { publicUrl } } = supabaseAdmin.storage
       .from('profile-images')
       .getPublicUrl(fileName)
@@ -61,10 +64,11 @@ export async function POST(request: NextRequest) {
       path: uploadData.path 
     })
 
-  } catch (error: any) {
-    console.error('Upload error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Upload error:', customError)
     return NextResponse.json(
-      { error: 'Failed to upload image', details: error.message },
+      { error: 'Failed to upload image', details: customError.message },
       { status: 500 }
     )
   }

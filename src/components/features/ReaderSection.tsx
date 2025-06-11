@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { BookGrid } from '@/components/books/BookGrid'
 import { MyCheckouts } from './MyCheckouts'
 import { SearchBar } from '@/components/books/SearchBar'
-import { CategoryFilter } from '@/components/books/CategoryFilter'
 import { useAuth } from '@/hooks/useAuth'
 import { useBooks } from '@/hooks/useBooks'
 import { useCheckouts } from '@/hooks/useCheckouts'
@@ -14,14 +13,11 @@ import { Heart, Download, Clock, Star } from 'lucide-react'
 export const ReaderSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'discover' | 'my-books' | 'favorites'>('discover')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
 
-  // Real data from hooks
   const { user } = useAuth()
   const { books, loading: booksLoading } = useBooks()
   const { checkouts, loading: checkoutsLoading } = useCheckouts()
 
-  // Calculate real reader stats
   const userCheckouts = checkouts.filter(checkout => checkout.userId === user?.id)
   const completedCheckouts = userCheckouts.filter(checkout => checkout.isReturned)
   const currentCheckouts = userCheckouts.filter(checkout => !checkout.isReturned)
@@ -29,26 +25,24 @@ export const ReaderSection: React.FC = () => {
   const readerStats = {
     booksRead: completedCheckouts.length,
     currentlyReading: currentCheckouts.length,
-    favorites: 0, // This would need to be implemented with a favorites system
-    hoursRead: completedCheckouts.length * 8 // Estimate 8 hours per book
+    favorites: 0,
+    hoursRead: completedCheckouts.length * 8
   }
 
-  // Generate recommendations based on popular books
   const recommendations = books
     .sort((a, b) => (b.total_copies - b.available_copies) - (a.total_copies - a.available_copies))
     .slice(0, 3)
-    .map((book, index) => ({
+    .map((book) => ({
       id: book.id,
       title: book.title,
       author: book.authors.join(', '),
-      rating: (4.5 + Math.random() * 0.5).toFixed(1) // Mock rating for now
+      rating: (4.5 + Math.random() * 0.5).toFixed(1)
     }))
 
   const isLoading = booksLoading || checkoutsLoading
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">
           Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
@@ -56,7 +50,6 @@ export const ReaderSection: React.FC = () => {
         <p className="text-gray-600 mt-1">Discover your next great read</p>
       </div>
 
-      {/* Tab Navigation */}
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
         {[
           { id: 'discover', label: 'Discover' },
@@ -67,7 +60,7 @@ export const ReaderSection: React.FC = () => {
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'discover' | 'my-books' | 'favorites')}
             className={activeTab === tab.id ? 'bg-blue-500 shadow-sm' : ''}
           >
             {tab.label}
@@ -75,20 +68,16 @@ export const ReaderSection: React.FC = () => {
         ))}
       </div>
 
-      {/* Content based on active tab */}
       {activeTab === 'discover' && (
         <div className="space-y-6">
-          {/* Search and Filters */}
           <div className="space-y-4">
             <SearchBar 
               value={searchQuery}
               onChange={setSearchQuery}
               placeholder="Search for books, authors, or ISBN..."
             />
-          
           </div>
 
-          {/* Reading Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4">
@@ -147,7 +136,6 @@ export const ReaderSection: React.FC = () => {
             </Card>
           </div>
 
-          {/* Recommendations */}
           <Card>
             <CardHeader>
               <CardTitle>Recommended for You</CardTitle>
@@ -175,10 +163,9 @@ export const ReaderSection: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* All Books */}
           <div>
             <h2 className="text-xl font-semibold mb-4">All Books</h2>
-            <BookGrid userRole="reader" searchQuery={searchQuery} selectedCategory={selectedCategory} />
+            <BookGrid userRole="reader" searchQuery={searchQuery} />
           </div>
         </div>
       )}
@@ -194,7 +181,7 @@ export const ReaderSection: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Your Favorite Books</CardTitle>
-              <CardDescription>Books you've marked as favorites</CardDescription>
+              <CardDescription>Books you&apos;ve marked as favorites</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-gray-600">Your favorite books will appear here once you start marking books as favorites...</p>

@@ -1,12 +1,13 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Search, Calendar, User, BookOpen, AlertCircle, Loader2 } from 'lucide-react'
-import { useCheckouts } from '@/hooks/useCheckouts' // ✅ Use the hook
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Search, Calendar, BookOpen, AlertCircle, Loader2 } from 'lucide-react'
+import { useCheckouts } from '@/hooks/useCheckouts'
 
 interface ProcessedCheckout {
   id: string
@@ -32,16 +33,17 @@ interface ProcessedCheckout {
   }
 }
 
+interface CustomError {
+  message?: string
+}
+
 export const CheckoutManagement: React.FC = () => {
-  // ✅ Use the hook instead of manual state management
   const { checkouts: rawCheckouts, loading, error, fetchCheckouts } = useCheckouts()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState<'all' | 'due-soon' | 'overdue'>('all')
 
-  // Process the checkouts to add computed fields and format data
   const checkouts: ProcessedCheckout[] = rawCheckouts.map((checkout) => {
-    // Map from your hook's format to the component's expected format
     const dueDate = new Date(checkout.expectedReturnDate)
     const today = new Date()
     const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24))
@@ -64,14 +66,13 @@ export const CheckoutManagement: React.FC = () => {
       } : undefined,
       user: checkout.user ? {
         id: checkout.user.id,
-        first_name: checkout.user.firstName || checkout.user.first_name,
-        last_name: checkout.user.lastName || checkout.user.last_name,
+        first_name: checkout.user.firstName || checkout.user.first_name || 'Unknown',
+        last_name: checkout.user.lastName || checkout.user.last_name || 'User',
         email: checkout.user.email
       } : undefined
     }
   })
 
-  // Contact user function
   const handleContactUser = async (checkout: ProcessedCheckout) => {
     try {
       const response = await fetch('/api/notifications/send-reminder', {
@@ -93,13 +94,13 @@ export const CheckoutManagement: React.FC = () => {
       }
 
       alert('Reminder sent successfully!')
-    } catch (err: any) {
-      console.error('Error sending reminder:', err)
-      alert('Failed to send reminder: ' + err.message)
+    } catch (err) {
+      const customError = err as CustomError
+      console.error('Error sending reminder:', customError)
+      alert('Failed to send reminder: ' + customError.message)
     }
   }
 
-  // Filter checkouts based on search term and filter
   const filteredCheckouts = checkouts.filter(checkout => {
     if (!checkout.book || !checkout.user) return false
     
@@ -115,10 +116,9 @@ export const CheckoutManagement: React.FC = () => {
       const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24))
       return matchesSearch && !checkout.is_overdue && !checkout.is_returned && diffDays <= 2 && diffDays >= 0
     }
-    return matchesSearch && !checkout.is_returned // Only show active checkouts
+    return matchesSearch && !checkout.is_returned
   })
 
-  // Calculate stats
   const stats = {
     total: checkouts.filter(c => !c.is_returned).length,
     overdue: checkouts.filter(c => c.is_overdue && !c.is_returned).length,
@@ -175,13 +175,11 @@ export const CheckoutManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Checkout Management</h2>
         <p className="text-gray-600 mt-1">Monitor and manage all book checkouts</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -220,7 +218,6 @@ export const CheckoutManagement: React.FC = () => {
         </Card>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
           <CardTitle>All Checkouts</CardTitle>
@@ -228,7 +225,6 @@ export const CheckoutManagement: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -239,7 +235,6 @@ export const CheckoutManagement: React.FC = () => {
               />
             </div>
 
-            {/* Filter Buttons */}
             <div className="flex gap-2">
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
@@ -265,19 +260,19 @@ export const CheckoutManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Checkout List */}
           <div className="space-y-4">
             {filteredCheckouts.map((checkout) => (
               <div key={checkout.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    {/* Book Cover */}
-                    <div className="w-12 h-16 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
+                    <div className="relative w-12 h-16 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
                       {checkout.book?.cover_image_url ? (
-                        <img
+                        <Image
                           src={checkout.book.cover_image_url}
-                          alt={checkout.book.title}
-                          className="w-full h-full object-cover"
+                          alt={checkout.book.title || 'Book cover'}
+                          fill
+                          sizes="48px"
+                          className="object-cover"
                         />
                       ) : (
                         <BookOpen className="h-6 w-6 text-gray-500" />
@@ -333,14 +328,19 @@ export const CheckoutManagement: React.FC = () => {
                 </div>
               </div>
             ))}
-          </div>
 
-          {filteredCheckouts.length === 0 && !loading && (
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No checkouts found matching your criteria.</p>
-            </div>
-          )}
+            {filteredCheckouts.length === 0 && (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No checkouts found</h3>
+                <p className="text-gray-600">
+                  {filter === 'all' ? 'There are no active checkouts at the moment.' :
+                   filter === 'overdue' ? 'No overdue checkouts found.' :
+                   'No checkouts due soon.'}
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

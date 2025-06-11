@@ -16,6 +16,28 @@ export interface User {
   updatedAt: string
 }
 
+interface ProfileUpdateData {
+  firstName?: string
+  lastName?: string
+  phone?: string
+  address?: string
+  profilePhotoUrl?: string
+}
+
+interface PasswordChangeData {
+  currentPassword: string
+  newPassword: string
+}
+
+interface CustomError {
+  response?: {
+    data?: {
+      error?: string
+    }
+  }
+  message?: string
+}
+
 export function useUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -27,42 +49,36 @@ export function useUsers() {
       const data = await usersAPI.getAll()
       setUsers(data)
       setError(null)
-    } catch (err: any) {
-      console.error('Error fetching users:', err)
-      setError(err.response?.data?.error || 'Failed to fetch users')
+    } catch (err) {
+      const customError = err as CustomError
+      console.error('Error fetching users:', customError)
+      setError(customError.response?.data?.error || 'Failed to fetch users')
     } finally {
       setLoading(false)
     }
   }
 
-  const updateProfile = async (profileData: {
-    firstName?: string
-    lastName?: string
-    phone?: string
-    address?: string
-    profilePhotoUrl?: string
-  }) => {
+  const updateProfile = async (profileData: ProfileUpdateData) => {
     try {
       const updatedUser = await usersAPI.updateProfile(profileData)
       // Refresh users list after update
       await fetchUsers()
       return updatedUser
-    } catch (err: any) {
-      console.error('Error updating profile:', err)
-      throw err
+    } catch (err) {
+      const customError = err as CustomError
+      console.error('Error updating profile:', customError)
+      throw customError
     }
   }
 
-  const changePassword = async (passwordData: {
-    currentPassword: string
-    newPassword: string
-  }) => {
+  const changePassword = async (passwordData: PasswordChangeData) => {
     try {
       const result = await usersAPI.changePassword(passwordData)
       return result
-    } catch (err: any) {
-      console.error('Error changing password:', err)
-      throw err
+    } catch (err) {
+      const customError = err as CustomError
+      console.error('Error changing password:', customError)
+      throw customError
     }
   }
 

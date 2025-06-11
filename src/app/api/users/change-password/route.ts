@@ -3,6 +3,10 @@ import { changePassword } from '@/server/controller/userController'
 import { verifyToken } from '@/server/lib/serverUtils'
 import { changePasswordSchema } from '@/server/lib/validations'
 
+interface CustomError {
+  message?: string
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('POST change password API called')
@@ -40,17 +44,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Validated password change data')
     
-    // Change password from controller (returns plain data now)
     const result = await changePassword(decoded.userId, validation.data)
     
     console.log('Password changed successfully')
     
-    // Wrap in NextResponse.json()
     return NextResponse.json(result)
-  } catch (error: any) {
-    console.error('Change password API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Change password API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

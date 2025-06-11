@@ -1,5 +1,39 @@
 import nodemailer from 'nodemailer'
 
+interface Book {
+  id: string
+  title: string
+  authors: string[]
+  isbn?: string
+}
+
+interface User {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
+}
+
+interface DueSoonBook {
+  book?: Book
+  expectedReturnDate: string
+  daysRemaining: number
+}
+
+interface OverdueBook {
+  book?: Book
+  user?: User
+  checkoutDate: string
+  expectedReturnDate: string
+  daysOverdue: number
+}
+
+interface EmailResult {
+  success: boolean
+  messageId?: string
+  error?: unknown
+}
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -10,7 +44,7 @@ const transporter = nodemailer.createTransport({
 })
 
 export const emailService = {
-  sendDueSoonNotification: async (userEmail: string, userName: string, books: any[]) => {
+  sendDueSoonNotification: async (userEmail: string, userName: string, books: DueSoonBook[]): Promise<EmailResult> => {
     try {
       console.log('=== SENDING DUE SOON EMAIL VIA GMAIL ===')
       console.log('To:', userEmail)
@@ -66,7 +100,7 @@ export const emailService = {
     }
   },
 
-  sendOverdueNotification: async (librarianEmail: string, overdueBooks: any[]) => {
+  sendOverdueNotification: async (librarianEmail: string, overdueBooks: OverdueBook[]): Promise<EmailResult> => {
     try {
       console.log('=== SENDING OVERDUE EMAIL VIA GMAIL ===')
       console.log('To:', librarianEmail)

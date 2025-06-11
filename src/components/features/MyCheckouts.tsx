@@ -1,9 +1,10 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { BookOpen, Calendar, AlertCircle, Loader2 } from 'lucide-react'
+import { BookOpen, AlertCircle, Loader2 } from 'lucide-react'
 import { useCheckouts } from '@/hooks/useCheckouts'
 
 interface UserCheckout {
@@ -24,27 +25,51 @@ interface UserCheckout {
   }
 }
 
+interface CheckoutData {
+  id: string
+  book_id?: string
+  bookId?: string
+  user_id?: string
+  userId?: string
+  checkout_date?: string
+  checkoutDate?: string
+  due_date?: string
+  expectedReturnDate?: string
+  return_date?: string
+  actualReturnDate?: string
+  is_returned?: boolean
+  isReturned?: boolean
+  book?: {
+    id: string
+    title: string
+    authors: string[]
+    cover_image_url?: string
+  }
+}
+
+interface CustomError {
+  message?: string
+}
+
 export const MyCheckouts: React.FC = () => {
-  // Use the hook for all checkout operations
   const { checkouts, loading, error, fetchMyCheckouts, checkinBook } = useCheckouts()
   const [processingActions, setProcessingActions] = useState<Set<string>>(new Set())
 
   // Convert and process the checkouts data
-  const userCheckouts: UserCheckout[] = checkouts.map((checkout: any) => {
-    // Handle both camelCase and snake_case field names
-    const dueDate = new Date(checkout.due_date || checkout.expectedReturnDate)
-    const checkoutDate = checkout.checkout_date || checkout.checkoutDate
-    const isReturned = checkout.is_returned ?? checkout.isReturned
+  const userCheckouts: UserCheckout[] = checkouts.map((checkout: CheckoutData) => {
+    const dueDate = new Date(checkout.due_date || checkout.expectedReturnDate || '')
+    const checkoutDate = checkout.checkout_date || checkout.checkoutDate || ''
+    const isReturned = checkout.is_returned ?? checkout.isReturned ?? false
     
     const today = new Date()
     const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24))
     
     return {
       id: checkout.id,
-      book_id: checkout.book_id || checkout.bookId,
-      user_id: checkout.user_id || checkout.userId,
+      book_id: checkout.book_id || checkout.bookId || '',
+      user_id: checkout.user_id || checkout.userId || '',
       checkout_date: checkoutDate,
-      due_date: checkout.due_date || checkout.expectedReturnDate,
+      due_date: checkout.due_date || checkout.expectedReturnDate || '',
       return_date: checkout.return_date || checkout.actualReturnDate,
       is_returned: isReturned,
       is_overdue: !isReturned && diffDays < 0,
@@ -53,27 +78,30 @@ export const MyCheckouts: React.FC = () => {
     }
   }).filter((checkout: UserCheckout) => !checkout.is_returned)
 
+  // Memoize the fetch function to avoid dependency warnings
+  const memoizedFetchMyCheckouts = useCallback(() => {
+    fetchMyCheckouts()
+  }, [fetchMyCheckouts])
+
   // Debug logging
   useEffect(() => {
     console.log('MyCheckouts - Raw checkouts from hook:', checkouts)
     console.log('MyCheckouts - Processed userCheckouts:', userCheckouts)
-  }, [checkouts])
+  }, [checkouts, userCheckouts])
 
   // Handle book return using the hook's checkinBook method
   const handleReturnBook = async (checkoutId: string) => {
     try {
       setProcessingActions(prev => new Set(prev).add(checkoutId))
       
-      // Use the hook's checkinBook method instead of manual fetch
       await checkinBook(checkoutId)
-      
-      // Refresh the checkouts list
-      await fetchMyCheckouts()
+      await memoizedFetchMyCheckouts()
       
       alert('Book returned successfully!')
-    } catch (err: any) {
-      console.error('Error returning book:', err)
-      alert('Failed to return book: ' + err.message)
+    } catch (err) {
+      const customError = err as CustomError
+      console.error('Error returning book:', customError)
+      alert('Failed to return book: ' + customError.message)
     } finally {
       setProcessingActions(prev => {
         const newSet = new Set(prev)
@@ -86,8 +114,8 @@ export const MyCheckouts: React.FC = () => {
   // Fetch data on mount
   useEffect(() => {
     console.log('MyCheckouts component mounted, fetching checkouts...')
-    fetchMyCheckouts()
-  }, [])
+    memoizedFetchMyCheckouts()
+  }, [memoizedFetchMyCheckouts])
 
   // Calculate stats
   const stats = {
@@ -124,7 +152,7 @@ export const MyCheckouts: React.FC = () => {
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Your Checkouts</h3>
               <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={fetchMyCheckouts}>Try Again</Button>
+              <Button onClick={memoizedFetchMyCheckouts}>Try Again</Button>
             </div>
           </CardContent>
         </Card>
@@ -141,7 +169,7 @@ export const MyCheckouts: React.FC = () => {
         <p className="text-xs text-gray-400">Debug: {userCheckouts.length} checkouts found</p>
       </div>
 
-      {/* Summary Stats - Remove "Due Soon" since no renewals */}
+      {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -184,12 +212,14 @@ export const MyCheckouts: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         {/* Book Cover */}
-                        <div className="w-12 h-16 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
+                        <div className="relative w-12 h-16 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
                           {checkout.book?.cover_image_url ? (
-                            <img
+                            <Image
                               src={checkout.book.cover_image_url}
-                              alt={checkout.book.title}
-                              className="w-full h-full object-cover"
+                              alt={checkout.book.title || 'Book cover'}
+                              fill
+                              sizes="48px"
+                              className="object-cover"
                             />
                           ) : (
                             <BookOpen className="h-6 w-6 text-gray-500" />
@@ -248,7 +278,7 @@ export const MyCheckouts: React.FC = () => {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <BookOpen className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-              <p>You don't have any books checked out currently.</p>
+              <p>You don&apos;t have any books checked out currently.</p>
               <p className="text-sm">Browse our collection to find your next great read!</p>
               <Button 
                 className="mt-4" 

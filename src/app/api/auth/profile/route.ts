@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     }
 
     return await getProfile(decoded.userId)
-  } catch (error) {
+  } catch (_error) {
+    // Using _ prefix to indicate intentionally unused parameter
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

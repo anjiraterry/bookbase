@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { ProfileModal } from '@/components/profile/ProfileModal'
@@ -44,19 +45,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return `${first}${last}`.toUpperCase()
   }
 
-  // Get user data from auth context
   const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'User'
   const userRole = user?.role || 'reader'
   const profilePhotoUrl = user?.profilePhotoUrl
 
-  // Don't render if no user data
   if (!user) {
     return <div>Loading...</div>
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -68,35 +66,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* Profile Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
                 >
-                  {/* Avatar */}
                   {profilePhotoUrl ? (
-                    <img
-                      src={profilePhotoUrl}
-                      alt={displayName}
-                      className="h-8 w-8 rounded-full object-cover border-2 border-transparent group-hover:border-blue-200 transition-colors"
-                    />
+                    <div className="relative h-8 w-8 rounded-full overflow-hidden border-2 border-transparent group-hover:border-blue-200 transition-colors">
+                      <Image
+                        src={profilePhotoUrl}
+                        alt={displayName}
+                        fill
+                        sizes="32px"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium border-2 border-transparent group-hover:border-blue-200 transition-colors">
                       {getInitials(user.firstName || '', user.lastName || '')}
                     </div>
                   )}
                   
-                  {/* Name */}
                   <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
                     {displayName}
                   </span>
                   
-                  {/* Dropdown Arrow */}
                   <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Dropdown Menu */}
                 {isDropdownOpen && (
                   <>
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
@@ -130,7 +127,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </header>
 
-      {/* Overlay to close dropdown when clicking outside */}
       {isDropdownOpen && (
         <div 
           className="fixed inset-0 z-40" 
@@ -138,12 +134,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         />
       )}
 
-      {/* Main content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {children}
       </main>
 
-      {/* Profile Modal */}
       <ProfileModal 
         mode={profileMode}
         isOpen={isProfileModalOpen} 

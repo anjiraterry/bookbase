@@ -17,16 +17,26 @@ interface User {
   address?: string
 }
 
+interface RegisterData {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  role: 'librarian' | 'reader'
+  profilePhotoUrl?: string
+  phone?: string
+  address?: string
+}
+
 interface AuthContextType {
   user: User | null
   token: string | null
   login: (email: string, password: string) => Promise<void>
-  register: (data: any) => Promise<void>
+  register: (data: FormData | RegisterData) => Promise<void>
   logout: () => void
   loading: boolean
   updateUser: (updatedUserData: Partial<User>) => void
 }
-
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -36,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-   
     if (typeof window !== 'undefined') {
       const storedToken = localStorage.getItem('token')
       const storedUser = localStorage.getItem('user')
@@ -61,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('Login response:', response) 
       
-  
       const { user: userData, token: userToken } = response
       
       setUser(userData)
@@ -77,14 +85,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
   
-  const register = async (data: FormData | any) => {
+  const register = async (data: FormData | RegisterData) => {
     try {
       console.log('Register called with:', data instanceof FormData ? 'FormData' : 'JSON data')
       
-      const response = await authAPI.register(data)
+      // Convert FormData to RegisterData object if needed
+      let registerData: RegisterData
+      
+      if (data instanceof FormData) {
+        registerData = {
+          email: data.get('email') as string,
+          password: data.get('password') as string,
+          firstName: data.get('firstName') as string,
+          lastName: data.get('lastName') as string,
+          role: data.get('role') as 'librarian' | 'reader',
+          phone: data.get('phone') as string || undefined,
+          address: data.get('address') as string || undefined,
+          profilePhotoUrl: data.get('profilePhotoUrl') as string || undefined,
+        }
+      } else {
+        registerData = data
+      }
+      
+      const response = await authAPI.register(registerData)
       
       console.log('Register response:', response) 
-      
       
       const { user: userData, token: userToken } = response
       
@@ -116,14 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const updatedUser = { ...prev, ...updatedUserData }
       
-  
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(updatedUser))
       }
       
       console.log('User updated in context:', updatedUser)
       
-
       return { ...updatedUser }
     })
   }

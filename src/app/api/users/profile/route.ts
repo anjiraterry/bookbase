@@ -3,6 +3,10 @@ import { updateProfile } from '@/server/controller/userController'
 import { verifyToken } from '@/server/lib/serverUtils'
 import { updateProfileSchema } from '@/server/lib/validations'
 
+interface CustomError {
+  message?: string
+}
+
 export async function PUT(request: NextRequest) {
   try {
     console.log('PUT update profile API called')
@@ -40,17 +44,16 @@ export async function PUT(request: NextRequest) {
 
     console.log('Validated profile update data')
     
-    // Update profile from controller (returns plain data now)
     const result = await updateProfile(decoded.userId, validation.data)
     
     console.log('Profile updated successfully')
     
-    // Wrap in NextResponse.json()
     return NextResponse.json(result)
-  } catch (error: any) {
-    console.error('Update profile API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Update profile API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

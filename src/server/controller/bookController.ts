@@ -1,7 +1,63 @@
 import { supabase } from '../lib/supabase'
 import { BookInput, UpdateBookInput, SearchBooksInput } from '../lib/validations'
 
-export async function createBook(data: BookInput, userId: string) {
+interface DatabaseBook {
+  id: string
+  title: string
+  isbn: string
+  revision_number?: number
+  published_date?: string
+  publisher?: string
+  authors: string[]
+  genre?: string
+  cover_image_url?: string
+  description?: string
+  total_copies: number
+  available_copies: number
+  added_by: string
+  created_at: string
+  updated_at: string
+  added_by_user?: {
+    first_name: string
+    last_name: string
+    email: string
+  }
+}
+
+interface BooksResponse {
+  books: DatabaseBook[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+interface DeleteResponse {
+  message: string
+}
+
+interface CustomError {
+  message: string
+  code?: string
+}
+
+interface UpdateData {
+  title?: string
+  isbn?: string
+  revision_number?: number
+  published_date?: string
+  publisher?: string
+  authors?: string[]
+  genre?: string
+  cover_image_url?: string
+  description?: string
+  total_copies?: number
+  available_copies?: number
+}
+
+export async function createBook(data: BookInput, userId: string): Promise<DatabaseBook> {
   try {
     console.log('createBook called with data:', data, 'userId:', userId)
     
@@ -34,15 +90,15 @@ export async function createBook(data: BookInput, userId: string) {
 
     console.log('Book created successfully:', newBook)
 
-    // Return as-is (snake_case) instead of transforming to camelCase
-    return newBook
-  } catch (error: any) {
-    console.error('Error in createBook controller:', error)
-    throw error
+    return newBook as DatabaseBook
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in createBook controller:', customError)
+    throw customError
   }
 }
 
-export async function getAllBooks(searchParams?: SearchBooksInput) {
+export async function getAllBooks(searchParams?: SearchBooksInput): Promise<BooksResponse> {
   try {
     console.log('getAllBooks called with params:', searchParams)
     
@@ -95,9 +151,8 @@ export async function getAllBooks(searchParams?: SearchBooksInput) {
 
     console.log('Books retrieved:', books)
 
-    // Return with pagination info - no transformation
     return {
-      books: books || [],
+      books: (books || []) as DatabaseBook[],
       pagination: {
         page,
         limit,
@@ -105,13 +160,14 @@ export async function getAllBooks(searchParams?: SearchBooksInput) {
         totalPages: Math.ceil((count || 0) / limit)
       }
     }
-  } catch (error: any) {
-    console.error('Error in getAllBooks controller:', error)
-    throw error
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in getAllBooks controller:', customError)
+    throw customError
   }
 }
 
-export async function getBookById(bookId: string) {
+export async function getBookById(bookId: string): Promise<DatabaseBook> {
   try {
     console.log('getBookById called with bookId:', bookId)
     
@@ -129,15 +185,15 @@ export async function getBookById(bookId: string) {
       throw new Error('Book not found')
     }
 
-    // Return as-is (snake_case)
-    return book
-  } catch (error: any) {
-    console.error('Error in getBookById controller:', error)
-    throw error
+    return book as DatabaseBook
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in getBookById controller:', customError)
+    throw customError
   }
 }
 
-export async function updateBook(bookId: string, data: UpdateBookInput, userRole: string) {
+export async function updateBook(bookId: string, data: UpdateBookInput, userRole: string): Promise<DatabaseBook> {
   try {
     console.log('updateBook called with bookId:', bookId, 'data:', data, 'userRole:', userRole)
     
@@ -146,7 +202,7 @@ export async function updateBook(bookId: string, data: UpdateBookInput, userRole
       throw new Error('Librarian access required')
     }
 
-    const updateData: any = {}
+    const updateData: UpdateData = {}
     
     if (data.title) updateData.title = data.title
     if (data.isbn) updateData.isbn = data.isbn
@@ -189,15 +245,15 @@ export async function updateBook(bookId: string, data: UpdateBookInput, userRole
 
     console.log('Book updated successfully:', updatedBook)
 
-    // Return as-is (snake_case)
-    return updatedBook
-  } catch (error: any) {
-    console.error('Error in updateBook controller:', error)
-    throw error
+    return updatedBook as DatabaseBook
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in updateBook controller:', customError)
+    throw customError
   }
 }
 
-export async function deleteBook(bookId: string, userRole: string) {
+export async function deleteBook(bookId: string, userRole: string): Promise<DeleteResponse> {
   try {
     console.log('deleteBook called with bookId:', bookId, 'userRole:', userRole)
     
@@ -229,13 +285,14 @@ export async function deleteBook(bookId: string, userRole: string) {
 
     console.log('Book deleted successfully')
     return { message: 'Book deleted successfully' }
-  } catch (error: any) {
-    console.error('Error in deleteBook controller:', error)
-    throw error
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in deleteBook controller:', customError)
+    throw customError
   }
 }
 
-export async function getBooksByGenre(genre: string) {
+export async function getBooksByGenre(genre: string): Promise<DatabaseBook[]> {
   try {
     console.log('getBooksByGenre called with genre:', genre)
     
@@ -254,15 +311,15 @@ export async function getBooksByGenre(genre: string) {
     }
 
     console.log('Books by genre retrieved:', books?.length || 0)
-    // Return as-is (snake_case)
-    return books || []
-  } catch (error: any) {
-    console.error('Error in getBooksByGenre controller:', error)
-    throw error
+    return (books || []) as DatabaseBook[]
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in getBooksByGenre controller:', customError)
+    throw customError
   }
 }
 
-export async function getAvailableBooks() {
+export async function getAvailableBooks(): Promise<DatabaseBook[]> {
   try {
     console.log('getAvailableBooks called')
     
@@ -281,10 +338,10 @@ export async function getAvailableBooks() {
     }
 
     console.log('Available books retrieved:', books?.length || 0)
-    // Return as-is (snake_case)
-    return books || []
-  } catch (error: any) {
-    console.error('Error in getAvailableBooks controller:', error)
-    throw error
+    return (books || []) as DatabaseBook[]
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Error in getAvailableBooks controller:', customError)
+    throw customError
   }
 }

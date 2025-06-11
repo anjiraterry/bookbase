@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,13 +9,17 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/useAuth'
 import { usersAPI } from '@/lib/api'
-import { toast } from 'sonner' // Import directly from sonner
+import { toast } from 'sonner'
 import { User, Mail, Phone, Calendar, Shield, Camera, Upload, X } from 'lucide-react'
 
 interface ProfileModalProps {
   mode: 'view' | 'edit'
   isOpen: boolean
   onClose: () => void
+}
+
+interface CustomError {
+  message?: string
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -54,7 +59,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     }
   }, [user, isOpen])
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
@@ -70,12 +75,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     const file = event.target.files?.[0]
     if (!file) return
 
-
     if (!file.type.startsWith('image/')) {
       toast.error('Please select a valid image file')
       return
     }
-
 
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image size must be less than 5MB')
@@ -85,20 +88,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     try {
       setUploadingImage(true)
       
-   
       const formDataUpload = new FormData()
       formDataUpload.append('file', file)
       
       const uploadResponse = await usersAPI.uploadProfileImage(formDataUpload)
       
-     
       const imageUrl = uploadResponse.url
       handleImageUrlChange(imageUrl)
       
       toast.success('Profile picture uploaded successfully')
-    } catch (error: any) {
-      console.error('Image upload error:', error)
-      toast.error(error.message || 'Failed to upload image')
+    } catch (error) {
+      const customError = error as CustomError
+      console.error('Image upload error:', customError)
+      toast.error(customError.message || 'Failed to upload image')
     } finally {
       setUploadingImage(false)
     }
@@ -125,7 +127,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     try {
       setLoading(true)
       
-      // Update user profile via API using usersAPI
       const updatedUser = await usersAPI.updateProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -133,15 +134,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         profilePhotoUrl: formData.profilePhotoUrl
       })
       
-      // Update local auth state
       updateUser(updatedUser)
       
       toast.success('Profile updated successfully')
       
       onClose()
-    } catch (error: any) {
-      console.error('Profile update error:', error)
-      toast.error(error.message || 'Failed to update profile')
+    } catch (error) {
+      const customError = error as CustomError
+      console.error('Profile update error:', customError)
+      toast.error(customError.message || 'Failed to update profile')
     } finally {
       setLoading(false)
     }
@@ -165,7 +166,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-[95vw]  max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{modalTitle}</DialogTitle>
           <DialogDescription>
@@ -175,16 +176,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Avatar */}
           <div className="space-y-4">
             <div className="relative group">
               <div className="aspect-square bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold mx-auto w-32 h-32 overflow-hidden">
                 {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={imagePreview}
+                      alt="Profile"
+                      fill
+                      sizes="128px"
+                      className="object-cover"
+                    />
+                  </div>
                 ) : (
                   getInitials(formData.firstName, formData.lastName)
                 )}
@@ -199,7 +203,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
             {!isViewMode && (
               <div className="space-y-3">
-                {/* File Upload */}
                 <div>
                   <Label htmlFor="file-upload" className="cursor-pointer">
                     <div className="flex items-center justify-center gap-2 p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
@@ -219,7 +222,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   />
                 </div>
 
-                {/* URL Input */}
                 <div>
                   <Label htmlFor="image-url">Or enter image URL</Label>
                   <Input
@@ -230,7 +232,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   />
                 </div>
 
-                {/* Remove Image Button */}
                 {imagePreview && (
                   <Button
                     type="button"
@@ -246,7 +247,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             )}
 
-            {/* Profile Stats */}
             <div className="space-y-3 bg-gray-50 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium flex items-center gap-2">
@@ -280,7 +280,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Profile Information */}
           <div className="lg:col-span-2 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -362,36 +361,29 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       className="bg-gray-50"
                     />
                   </div>
+
+                  <div>
+                    <Label htmlFor="created">Created At</Label>
+                    <Input
+                      id="created"
+                      value={formatDate(formData.createdAt)}
+                      readOnly={true}
+                      className="bg-gray-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="updated">Last Updated</Label>
+                    <Input
+                      id="updated"
+                      value={formatDate(formData.updatedAt)}
+                      readOnly={true}
+                      className="bg-gray-50"
+                    />
+                  </div>
                 </>
               )}
             </div>
-
-            {/* Account Information Section */}
-            {isViewMode && (
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900">Account Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-600">Account Created:</span>
-                    <p className="text-gray-900">{formatDate(formData.createdAt)}</p>
-                  </div>
-                  {formData.updatedAt && (
-                    <div>
-                      <span className="font-medium text-gray-600">Last Updated:</span>
-                      <p className="text-gray-900">{formatDate(formData.updatedAt)}</p>
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-medium text-gray-600">User ID:</span>
-                    <p className="text-gray-900 font-mono text-xs">{user?.id}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-600">Account Type:</span>
-                    <p className="text-gray-900">{formData.role === 'librarian' ? 'Library Staff' : 'Library Member'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -400,7 +392,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             {isViewMode ? 'Close' : 'Cancel'}
           </Button>
           {!isViewMode && (
-            <Button onClick={handleSave} disabled={loading || uploadingImage}>
+            <Button onClick={handleSave} disabled={loading}>
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           )}

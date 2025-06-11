@@ -10,21 +10,22 @@ import { ReaderSection } from '@/components/features/ReaderSection'
 import { BookModal } from '@/components/books/BookModal'
 import { Book } from '../../types/database'
 
+interface CustomError {
+  message?: string
+}
+
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
-  const { createBook, fetchBooks } = useBooks()
+  const { createBook } = useBooks()
   const router = useRouter()
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login')
     }
   }, [user, authLoading, router])
 
-  // Show loading while checking authentication
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -36,7 +37,6 @@ export default function DashboardPage() {
     )
   }
 
-  // Don't render anything if user is not authenticated
   if (!user) {
     return null
   }
@@ -46,9 +46,7 @@ export default function DashboardPage() {
   }
 
   const handleSaveBook = async (bookData: Partial<Book>) => {
-    setIsLoading(true)
     try {
-      // Transform the data to match API expectations
       const apiBookData = {
         title: bookData.title || '',
         isbn: bookData.isbn || '',
@@ -63,17 +61,14 @@ export default function DashboardPage() {
 
       await createBook(apiBookData)
       
-      // Close modal and refresh books list
       setIsAddBookModalOpen(false)
       
-      // Optional: Show success message
       alert('Book added successfully!')
       
-    } catch (error: any) {
-      console.error('Error saving book:', error)
-      alert(`Error: ${error.message || 'Failed to save book'}`)
-    } finally {
-      setIsLoading(false)
+    } catch (error) {
+      const customError = error as CustomError
+      console.error('Error saving book:', customError)
+      alert(`Error: ${customError.message || 'Failed to save book'}`)
     }
   }
 
@@ -89,7 +84,6 @@ export default function DashboardPage() {
         <ReaderSection />
       )}
 
-      {/* Add Book Modal for Librarians */}
       {user.role === 'librarian' && (
         <BookModal
           mode="add"

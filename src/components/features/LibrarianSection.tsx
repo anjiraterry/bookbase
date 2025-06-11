@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -7,15 +8,24 @@ import { BookGrid } from '@/components/books/BookGrid'
 import { CheckoutManagement } from './CheckoutManagement'
 import { useBooks } from '@/hooks/useBooks'
 import { useCheckouts } from '@/hooks/useCheckouts'
-import { useUsers, User } from '@/hooks/useUsers' // ✅ Import User type
+import { useUsers, User } from '@/hooks/useUsers'
 import { Plus, BookOpen, Users, Clock, TrendingUp } from 'lucide-react'
 
 interface LibrarianSectionProps {
   onAddBook: () => void
 }
 
+interface UserLike {
+  firstName?: string
+  lastName?: string
+  first_name?: string
+  last_name?: string
+  email?: string
+  name?: string
+}
+
 // Helper function to get user's full name safely with proper typing
-const getUserFullName = (user: User | any): string => {
+const getUserFullName = (user: User | UserLike | null | undefined): string => {
   if (!user) return 'Unknown User'
   
   // For typed User objects, use firstName/lastName
@@ -54,11 +64,11 @@ export const LibrarianSection: React.FC<LibrarianSectionProps> = ({
   const recentActivity = (checkouts || [])
     .slice(-5) // Get last 5 checkouts
     .reverse() // Show newest first
-    .map((checkout, index) => ({
+    .map((checkout) => ({
       id: checkout.id,
       action: checkout.isReturned ? 'Book returned' : 'Book checked out',
       book: checkout.book?.title || 'Unknown Book',
-      user: getUserFullName(checkout.user), // ✅ Use helper function
+      user: getUserFullName(checkout.user),
       time: new Date(checkout.checkoutDate).toLocaleDateString()
     }))
 
@@ -91,7 +101,7 @@ export const LibrarianSection: React.FC<LibrarianSectionProps> = ({
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'overview' | 'books' | 'checkouts' | 'users')}
             className={activeTab === tab.id ? 'bg-blue-500 shadow-sm' : ''}
           >
             {tab.label}
@@ -184,7 +194,7 @@ export const LibrarianSection: React.FC<LibrarianSectionProps> = ({
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                         <div>
                           <p className="text-sm font-medium">{activity.action}</p>
-                          <p className="text-xs text-gray-600">"{activity.book}" by {activity.user}</p>
+                          <p className="text-xs text-gray-600">&quot;{activity.book}&quot; by {activity.user}</p>
                         </div>
                       </div>
                       <span className="text-xs text-gray-500">{activity.time}</span>
@@ -226,18 +236,22 @@ export const LibrarianSection: React.FC<LibrarianSectionProps> = ({
               ) : (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {users?.map((user: User) => { // ✅ Type the user parameter
+                    {users?.map((user: User) => {
                       const displayName = getUserFullName(user)
                       
                       return (
                         <Card key={user.id}>
                           <CardContent className="p-4">
                             <div className="flex items-center space-x-3">
-                              <img
-                                src={user.profilePhotoUrl || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=0D8ABC&color=fff`}
-                                alt={displayName}
-                                className="h-10 w-10 rounded-full"
-                              />
+                              <div className="relative h-10 w-10 rounded-full overflow-hidden">
+                                <Image
+                                  src={user.profilePhotoUrl || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=0D8ABC&color=fff`}
+                                  alt={displayName}
+                                  fill
+                                  sizes="40px"
+                                  className="object-cover"
+                                />
+                              </div>
                               <div>
                                 <p className="font-medium">{displayName}</p>
                                 <p className="text-sm text-gray-600">{user.email}</p>

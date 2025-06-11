@@ -8,6 +8,10 @@ interface RouteParams {
   }
 }
 
+interface CustomError {
+  message?: string
+}
+
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
@@ -35,17 +39,16 @@ export async function GET(
 
     console.log('Getting checkouts for user:', params.userId, 'requested by:', decoded.userId, 'role:', decoded.role)
     
-    // Get user checkouts from controller (returns plain data now)
     const checkouts = await getUserCheckouts(params.userId, decoded.userId, decoded.role)
     
     console.log('User checkouts retrieved successfully:', checkouts.length, 'checkouts')
     
-    // Wrap in NextResponse.json()
     return NextResponse.json(checkouts)
-  } catch (error: any) {
-    console.error('Get user checkouts API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Get user checkouts API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

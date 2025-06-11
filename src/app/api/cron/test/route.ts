@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+interface CustomError {
+  message?: string
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type')
@@ -24,7 +28,8 @@ export async function GET(request: NextRequest) {
         ]
       })
     }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    const customError = error as CustomError
+    return NextResponse.json({ error: customError.message }, { status: 500 })
   }
 }

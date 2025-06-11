@@ -3,6 +3,10 @@ import { createBook, getAllBooks } from '@/server/controller/bookController'
 import { verifyToken } from '@/server/lib/serverUtils'
 import { bookSchema, searchBooksSchema } from '@/server/lib/validations'
 
+interface CustomError {
+  message?: string
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Books API GET called')
@@ -12,20 +16,20 @@ export async function GET(request: NextRequest) {
     
     console.log('Query params:', queryParams)
 
-    // Provide default values for page and limit
+   
     const defaultParams = {
       page: 1,
       limit: 50,
-      ...queryParams // Spread the actual query params
+      ...queryParams 
     }
 
-    // Validate with defaults included
+   
     const validation = searchBooksSchema.safeParse(defaultParams)
     let validatedParams = defaultParams
 
     if (!validation.success) {
       console.log('Validation failed, using defaults:', validation.error)
-      // Use just the defaults if validation fails
+
       validatedParams = { page: 1, limit: 50 }
     } else {
       validatedParams = validation.data
@@ -33,16 +37,17 @@ export async function GET(request: NextRequest) {
 
     console.log('Final params:', validatedParams)
 
-    // Get books from controller
+ 
     const result = await getAllBooks(validatedParams)
     
     console.log('Books retrieved successfully:', result)
     
     return NextResponse.json(result)
-  } catch (error: any) {
-    console.error('Books API GET error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Books API GET error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('Books API POST called')
     
-    // Check authentication
+   
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -81,17 +86,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create book from controller
+ 
     const book = await createBook(validation.data, decoded.userId)
     
     console.log('Book created successfully:', book)
     
     return NextResponse.json(book, { status: 201 })
-  } catch (error: any) {
-    console.error('Books API POST error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Books API POST error:', customError)
     
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

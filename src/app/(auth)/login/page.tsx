@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { usersAPI } from '@/lib/api' 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,12 +12,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BookOpen, Mail, Lock, User, Phone, MapPin, AlertCircle, Camera } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import Link from 'next/link'
+import Image from 'next/image'
+
+interface UploadResponse {
+  url: string
+  path?: string
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      error?: string
+    }
+  }
+  message?: string
+}
 
 export default function LoginPage() {
   const router = useRouter()
   const { login, register } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false) //
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState('')
 
   const [loginData, setLoginData] = useState({
@@ -25,7 +40,6 @@ export default function LoginPage() {
     password: ''
   })
 
-  
   const [registerData, setRegisterData] = useState({
     email: '',
     password: '',
@@ -41,16 +55,13 @@ export default function LoginPage() {
   // Profile picture preview state
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
 
- 
   const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-     
       if (!file.type.startsWith('image/')) {
         setError('Please select a valid image file')
         return
       }
-      
 
       if (file.size > 5 * 1024 * 1024) {
         setError('Image size must be less than 5MB')
@@ -61,42 +72,38 @@ export default function LoginPage() {
         setUploadingImage(true)
         setError('')
         
-       
         const uploadFormData = new FormData()
         uploadFormData.append('file', file)
         
         console.log('🔄 Uploading profile image...')
-        const uploadResponse = await usersAPI.uploadProfileImage(uploadFormData)
+        const uploadResponse: UploadResponse = await usersAPI.uploadProfileImage(uploadFormData)
         
         console.log('✅ Upload successful:', uploadResponse.url)
         
-      
         setRegisterData({
           ...registerData, 
           profilePictureUrl: uploadResponse.url
         })
         
-     
         const reader = new FileReader()
         reader.onload = (e) => {
           setProfilePreview(e.target?.result as string)
         }
         reader.readAsDataURL(file)
         
-      } catch (error: any) {
-        console.error('❌ Upload failed:', error)
-        setError(error.response?.data?.error || 'Failed to upload image')
+      } catch (error) {
+        const apiError = error as ApiError
+        console.error('❌ Upload failed:', apiError)
+        setError(apiError.response?.data?.error || apiError.message || 'Failed to upload image')
       } finally {
         setUploadingImage(false)
       }
     }
   }
 
-
   const removeProfilePicture = () => {
     setRegisterData({...registerData, profilePictureUrl: ''})
     setProfilePreview(null)
-  
     const fileInput = document.getElementById('profilePicture') as HTMLInputElement
     if (fileInput) fileInput.value = ''
   }
@@ -109,15 +116,15 @@ export default function LoginPage() {
     try {
       await login(loginData.email, loginData.password)
       router.push('/dashboard')
-    } catch (error: any) {
-      console.error('Login error:', error)
-      setError(error.response?.data?.error || 'Login failed. Please try again.')
+    } catch (error) {
+      const apiError = error as ApiError
+      console.error('Login error:', apiError)
+      setError(apiError.response?.data?.error || apiError.message || 'Login failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  // ✅ Updated handleRegister to send JSON data
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -135,7 +142,6 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // ✅ Send JSON data with uploaded image URL
       const registrationData = {
         email: registerData.email,
         password: registerData.password,
@@ -150,9 +156,10 @@ export default function LoginPage() {
       console.log('🚀 Registering with data:', registrationData)
       await register(registrationData)
       router.push('/dashboard')
-    } catch (error: any) {
-      console.error('Register error:', error)
-      setError(error.response?.data?.error || 'Registration failed. Please try again.')
+    } catch (error) {
+      const apiError = error as ApiError
+      console.error('Register error:', apiError)
+      setError(apiError.response?.data?.error || apiError.message || 'Registration failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -166,9 +173,10 @@ export default function LoginPage() {
     try {
       await login(email, password)
       router.push('/dashboard')
-    } catch (error: any) {
-      console.error('Demo login error:', error)
-      setError(error.response?.data?.error || 'Demo login failed. Please try again.')
+    } catch (error) {
+      const apiError = error as ApiError
+      console.error('Demo login error:', apiError)
+      setError(apiError.response?.data?.error || apiError.message || 'Demo login failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -274,9 +282,11 @@ export default function LoginPage() {
                       <div className="relative">
                         <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center overflow-hidden bg-gray-50">
                           {profilePreview ? (
-                            <img 
+                            <Image 
                               src={profilePreview} 
                               alt="Profile preview" 
+                              width={80}
+                              height={80}
                               className="w-full h-full object-cover"
                             />
                           ) : (

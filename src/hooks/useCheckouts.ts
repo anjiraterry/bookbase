@@ -1,6 +1,26 @@
 import { useState, useEffect } from 'react'
 import { checkoutsAPI } from '../lib/api'
 
+interface Book {
+  id: string
+  title: string
+  authors: string[]
+  cover_image_url?: string
+  isbn?: string
+  publisher?: string
+  genre?: string
+}
+
+interface User {
+  id: string
+  email: string
+  firstName?: string
+  lastName?: string
+  first_name?: string
+  last_name?: string
+  role: 'librarian' | 'reader'
+}
+
 interface Checkout {
   id: string
   bookId: string
@@ -10,26 +30,40 @@ interface Checkout {
   actualReturnDate?: string
   isReturned: boolean
   isOverdue: boolean
-  book?: any
-  user?: any
+  book?: Book
+  user?: User
 }
 
-// Updated helper function to match your API client
+interface CheckoutRequest {
+  bookId: string
+}
+
+interface CheckinRequest {
+  checkoutId: string
+}
+
+interface CustomError {
+  response?: {
+    data?: {
+      error?: string
+    }
+  }
+  message?: string
+}
+
 const getAuthToken = (): string | null => {
   if (typeof window !== 'undefined') {
-    // Your api.js uses 'token', not 'authToken'
     return localStorage.getItem('token') || sessionStorage.getItem('token')
   }
   return null
 }
 
-// Helper function to get user info
-const getUserInfo = () => {
+const getUserInfo = (): User | null => {
   if (typeof window !== 'undefined') {
     const userStr = localStorage.getItem('user')
     if (userStr) {
       try {
-        return JSON.parse(userStr)
+        return JSON.parse(userStr) as User
       } catch {
         return null
       }
@@ -49,8 +83,9 @@ export function useCheckouts() {
     try {
       const response = await checkoutsAPI.getAll()
       setCheckouts(response.checkouts || response)
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch checkouts')
+    } catch (err) {
+      const customError = err as CustomError
+      setError(customError.response?.data?.error || 'Failed to fetch checkouts')
     } finally {
       setLoading(false)
     }
@@ -60,11 +95,11 @@ export function useCheckouts() {
     setLoading(true)
     setError(null)
     try {
-      // Use the API client instead of manual fetch
       const response = await checkoutsAPI.getMyCheckouts()
       setCheckouts(response.checkouts || response)
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to fetch your checkouts')
+    } catch (err) {
+      const customError = err as CustomError
+      setError(customError.response?.data?.error || customError.message || 'Failed to fetch your checkouts')
     } finally {
       setLoading(false)
     }
@@ -72,21 +107,23 @@ export function useCheckouts() {
 
   const checkoutBook = async (bookId: string) => {
     try {
-      const response = await checkoutsAPI.checkout({ bookId })
-      await fetchCheckouts() // Refresh the list
+      const response = await checkoutsAPI.checkout({ bookId } as CheckoutRequest)
+      await fetchCheckouts()
       return response
-    } catch (err: any) {
-      throw new Error(err.response?.data?.error || 'Failed to checkout book')
+    } catch (err) {
+      const customError = err as CustomError
+      throw new Error(customError.response?.data?.error || 'Failed to checkout book')
     }
   }
 
   const checkinBook = async (checkoutId: string) => {
     try {
-      const response = await checkoutsAPI.checkin({ checkoutId })
-      await fetchCheckouts() // Refresh the list
+      const response = await checkoutsAPI.checkin({ checkoutId } as CheckinRequest)
+      await fetchCheckouts()
       return response
-    } catch (err: any) {
-      throw new Error(err.response?.data?.error || 'Failed to checkin book')
+    } catch (err) {
+      const customError = err as CustomError
+      throw new Error(customError.response?.data?.error || 'Failed to checkin book')
     }
   }
 
@@ -94,13 +131,13 @@ export function useCheckouts() {
     try {
       const response = await checkoutsAPI.getOverdue()
       return response
-    } catch (err: any) {
-      throw new Error(err.response?.data?.error || 'Failed to fetch overdue checkouts')
+    } catch (err) {
+      const customError = err as CustomError
+      throw new Error(customError.response?.data?.error || 'Failed to fetch overdue checkouts')
     }
   }
 
   useEffect(() => {
-    // Only auto-fetch all checkouts if user is a librarian and has a token
     const token = getAuthToken()
     const user = getUserInfo()
     

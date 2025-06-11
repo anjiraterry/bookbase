@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllUsers } from '@/server/controller/userController' // Fixed: added 's' to controllers
+import { getAllUsers } from '@/server/controller/userController'
 import { verifyToken } from '@/server/lib/serverUtils'
+
+interface CustomError {
+  message?: string
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,16 +26,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fixed: Call controller and wrap result in NextResponse.json()
     const users = await getAllUsers(decoded.role)
     return NextResponse.json(users)
     
-  } catch (error: any) {
-    console.error('Users API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Users API error:', customError)
     
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: error.message?.includes('Librarian access required') ? 403 : 500 }
+      { error: customError.message || 'Internal server error' },
+      { status: customError.message?.includes('Librarian access required') ? 403 : 500 }
     )
   }
 }

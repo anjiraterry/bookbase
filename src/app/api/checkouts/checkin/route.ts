@@ -3,6 +3,10 @@ import { checkinBook } from '@/server/controller/checkoutController'
 import { verifyToken } from '@/server/lib/serverUtils'
 import { checkinSchema } from '@/server/lib/validations'
 
+interface CustomError {
+  message?: string
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('POST checkin book API called')
@@ -40,17 +44,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Validated checkin data:', validation.data)
     
-    // Checkin book from controller (returns plain data now)
     const result = await checkinBook(validation.data, decoded.userId, decoded.role)
     
     console.log('Book checked in successfully')
     
-    // Wrap in NextResponse.json()
     return NextResponse.json(result)
-  } catch (error: any) {
-    console.error('Checkin book API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Checkin book API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getActiveCheckouts } from '@/server/controller/checkoutController'
 import { verifyToken } from '@/server/lib/serverUtils'
 
+interface CustomError {
+  message?: string
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('GET active checkouts API called')
@@ -26,17 +30,16 @@ export async function GET(request: NextRequest) {
 
     console.log('Getting active checkouts for role:', decoded.role)
     
-    // Get active checkouts from controller (returns plain data now)
     const checkouts = await getActiveCheckouts(decoded.role)
     
     console.log('Active checkouts retrieved successfully:', checkouts.length, 'checkouts')
     
-    // Wrap in NextResponse.json()
     return NextResponse.json(checkouts)
-  } catch (error: any) {
-    console.error('Get active checkouts API error:', error)
+  } catch (error) {
+    const customError = error as CustomError
+    console.error('Get active checkouts API error:', customError)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: customError.message || 'Internal server error' },
       { status: 500 }
     )
   }

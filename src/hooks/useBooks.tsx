@@ -7,19 +7,61 @@ interface Book {
   isbn: string
   authors: string[]
   publisher?: string
-  published_date?: string  // Changed from publishedDate
+  published_date?: string
   genre?: string
   description?: string
-  total_copies: number     // Changed from totalCopies
-  available_copies: number // Changed from availableCopies
-  cover_image_url?: string // Changed from coverImageUrl
-  created_at: string       // Changed from dateAddedToLibrary
-  added_by: string         // Changed from addedBy
-  added_by_user?: {        // Add this if you need user info
+  total_copies: number
+  available_copies: number
+  cover_image_url?: string
+  created_at: string
+  added_by: string
+  added_by_user?: {
     first_name: string
     last_name: string
     email: string
   }
+}
+
+interface BookSearchParams {
+  search?: string
+  genre?: string
+  author?: string
+  limit?: number
+  offset?: number
+}
+
+interface BookCreateData {
+  title: string
+  isbn: string
+  authors: string[]
+  publisher?: string
+  publishedDate?: string  
+  genre?: string
+  description?: string
+  totalCopies: number     
+  coverImageUrl?: string  
+}
+
+interface BookUpdateData {
+  title?: string
+  isbn?: string
+  authors?: string[]
+  publisher?: string
+  publishedDate?: string  
+  genre?: string
+  description?: string
+  totalCopies?: number    
+  availableCopies?: number 
+  coverImageUrl?: string  
+}
+
+interface CustomError {
+  response?: {
+    data?: {
+      error?: string
+    }
+  }
+  message?: string
 }
 
 export function useBooks() {
@@ -27,45 +69,49 @@ export function useBooks() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchBooks = async (params?: any) => {
+  const fetchBooks = async (params?: BookSearchParams) => {
     setLoading(true)
     setError(null)
     try {
       const response = await booksAPI.getAll(params)
       setBooks(response.data.books || response.data)
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch books')
+    } catch (err) {
+      const customError = err as CustomError
+      setError(customError.response?.data?.error || 'Failed to fetch books')
     } finally {
       setLoading(false)
     }
   }
 
-  const createBook = async (data: any) => {
+  const createBook = async (data: BookCreateData) => {
     try {
       const response = await booksAPI.create(data)
-      await fetchBooks() // Refresh the list
+      await fetchBooks()
       return response
-    } catch (err: any) {
-      throw new Error(err.response?.data?.error || 'Failed to create book')
+    } catch (err) {
+      const customError = err as CustomError
+      throw new Error(customError.response?.data?.error || 'Failed to create book')
     }
   }
 
-  const updateBook = async (id: string, data: any) => {
+  const updateBook = async (id: string, data: BookUpdateData) => {
     try {
       const response = await booksAPI.update(id, data)
-      await fetchBooks() // Refresh the list
+      await fetchBooks()
       return response
-    } catch (err: any) {
-      throw new Error(err.response?.data?.error || 'Failed to update book')
+    } catch (err) {
+      const customError = err as CustomError
+      throw new Error(customError.response?.data?.error || 'Failed to update book')
     }
   }
 
   const deleteBook = async (id: string) => {
     try {
       await booksAPI.delete(id)
-      await fetchBooks() // Refresh the list
-    } catch (err: any) {
-      throw new Error(err.response?.data?.error || 'Failed to delete book')
+      await fetchBooks()
+    } catch (err) {
+      const customError = err as CustomError
+      throw new Error(customError.response?.data?.error || 'Failed to delete book')
     }
   }
 
