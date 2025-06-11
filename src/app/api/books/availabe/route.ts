@@ -5,16 +5,14 @@ interface CustomError {
   message?: string
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     console.log('GET available books API called')
     
- 
     const books = await getAvailableBooks()
     
     console.log('Available books retrieved successfully:', books.length, 'books')
     
-  
     return NextResponse.json(books)
   } catch (error) {
     const customError = error as CustomError

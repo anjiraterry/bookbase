@@ -14,32 +14,36 @@ interface Book {
 }
 
 interface User {
+  id: string
   email: string
-  firstName?: string
-  last_name?: string
-  lastName?: string
-  first_name?: string
+  first_name: string
+  last_name: string
+  phone?: string
 }
 
-interface Checkout {
+// Define DueSoonBook to match what emailService expects
+interface DueSoonBook {
+  id: string
+  bookId: string
   userId: string
+  checkoutDate: string
   expectedReturnDate: string
-  daysRemaining: number
-  user: User
+  daysRemaining: number  // Required, not optional
   book?: Book
+  user?: User
 }
 
 interface UserGroup {
   userEmail: string
   userName: string
-  books: Checkout[]
+  books: DueSoonBook[]
 }
 
 interface UserGroups {
   [userId: string]: UserGroup
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     console.log('Running due soon notifications cron job...')
     
@@ -56,21 +60,33 @@ export async function GET(_request: NextRequest) {
     console.log(`Found ${dueSoonCheckouts.length} checkouts due soon`)
     console.log('Sample checkout data:', dueSoonCheckouts[0])
 
-    const userGroups = dueSoonCheckouts.reduce((groups: UserGroups, checkout: Checkout) => {
+    // Transform TransformedCheckout[] to DueSoonBook[]
+    const dueSoonBooks: DueSoonBook[] = dueSoonCheckouts.map(checkout => ({
+      id: checkout.id,
+      bookId: checkout.bookId,
+      userId: checkout.userId,
+      checkoutDate: checkout.checkoutDate,
+      expectedReturnDate: checkout.expectedReturnDate,
+      daysRemaining: checkout.daysRemaining || 0, // Ensure it's never undefined
+      book: checkout.book,
+      user: checkout.user
+    }))
+
+    const userGroups = dueSoonBooks.reduce((groups: UserGroups, checkout: DueSoonBook) => {
       const checkoutUserId = checkout.userId
       if (!groups[checkoutUserId]) {
-        const firstName = checkout.user?.firstName || checkout.user?.first_name || ''
-        const lastName = checkout.user?.lastName || checkout.user?.last_name || ''
+        const firstName = checkout.user?.first_name || ''
+        const lastName = checkout.user?.last_name || ''
         const fullName = `${firstName} ${lastName}`.trim()
         
         groups[checkoutUserId] = {
-          userEmail: checkout.user.email,
-          userName: fullName || checkout.user.email || 'Library User',
+          userEmail: checkout.user?.email || '',
+          userName: fullName || checkout.user?.email || 'Library User',
           books: []
         }
         
         console.log(`User group created for ${checkoutUserId}:`, {
-          email: checkout.user.email,
+          email: checkout.user?.email,
           name: fullName,
           bookTitle: checkout.book?.title
         })
@@ -106,9 +122,9 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Sent due soon notification for ${dueSoonCheckouts.length} books to ${emailsSent} users`,
+      message: `Sent due soon notification for ${dueSoonBooks.length} books to ${emailsSent} users`,
       details: {
-        totalBooks: dueSoonCheckouts.length,
+        totalBooks: dueSoonBooks.length,
         emailsSent,
         emailsFailed,
         totalUsers: Object.keys(userGroups).length

@@ -14,6 +14,7 @@ interface DatabaseBook {
 }
 
 interface DatabaseUser {
+  id: string              // Add this line
   first_name: string
   last_name: string
   email: string
@@ -374,8 +375,8 @@ export async function getOverdueCheckouts(userRole: string): Promise<Transformed
       .from('checkouts')
       .select(`
         *,
-        book:books(title, isbn, authors, cover_image_url),
-        user:users(first_name, last_name, email, phone)
+        book:books(id, title, isbn, authors, cover_image_url),
+        user:users(id, first_name, last_name, email, phone)
       `)
       .eq('is_returned', false)
       .lt('expected_return_date', new Date().toISOString())
@@ -388,7 +389,6 @@ export async function getOverdueCheckouts(userRole: string): Promise<Transformed
 
     const dbCheckouts = checkouts as DatabaseCheckout[]
 
-    // Add calculated fields and transform to camelCase
     const overdueCheckouts: TransformedCheckout[] = dbCheckouts.map(checkout => ({
       id: checkout.id,
       bookId: checkout.book_id,
@@ -401,7 +401,8 @@ export async function getOverdueCheckouts(userRole: string): Promise<Transformed
       updatedAt: checkout.updated_at,
       book: checkout.book,
       user: checkout.user,
-      daysOverdue: Math.abs(getDaysRemaining(checkout.expected_return_date))
+      daysOverdue: Math.abs(getDaysRemaining(checkout.expected_return_date)), // This ensures it's always a number
+      isOverdue: true // All results are overdue by definition
     }))
 
     console.log('Overdue checkouts retrieved:', overdueCheckouts.length)
@@ -442,7 +443,7 @@ export async function getActiveCheckouts(userRole: string, userId?: string): Pro
 
     const dbCheckouts = checkouts as DatabaseCheckout[]
 
-    // Add calculated fields and transform to camelCase
+   
     const activeCheckouts: TransformedCheckout[] = dbCheckouts.map(checkout => ({
       id: checkout.id,
       bookId: checkout.book_id,
@@ -494,7 +495,7 @@ export async function getCheckoutsDueSoon(): Promise<TransformedCheckout[]> {
 
     const dbCheckouts = checkouts as DatabaseCheckout[]
 
-    // Add calculated fields and transform
+   
     const dueSoonCheckouts: TransformedCheckout[] = dbCheckouts.map(checkout => ({
       id: checkout.id,
       bookId: checkout.book_id,
