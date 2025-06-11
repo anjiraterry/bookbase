@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getCheckoutsDueSoon } from '@/server/controller/checkoutController'
 import { emailService } from '@/lib/email'
 
@@ -60,14 +60,14 @@ export async function GET() {
     console.log(`Found ${dueSoonCheckouts.length} checkouts due soon`)
     console.log('Sample checkout data:', dueSoonCheckouts[0])
 
-    // Transform TransformedCheckout[] to DueSoonBook[]
+  
     const dueSoonBooks: DueSoonBook[] = dueSoonCheckouts.map(checkout => ({
       id: checkout.id,
       bookId: checkout.bookId,
       userId: checkout.userId,
       checkoutDate: checkout.checkoutDate,
       expectedReturnDate: checkout.expectedReturnDate,
-      daysRemaining: checkout.daysRemaining || 0, // Ensure it's never undefined
+      daysRemaining: checkout.daysRemaining || 0, 
       book: checkout.book,
       user: checkout.user
     }))

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getAvailableBooks } from '@/server/controller/bookController'
 
 interface CustomError {
