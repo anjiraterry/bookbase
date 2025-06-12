@@ -54,40 +54,32 @@ interface CustomError {
 export const MyCheckouts: React.FC = () => {
   const { checkouts, loading, error, fetchMyCheckouts, checkinBook } = useCheckouts()
   const [processingActions, setProcessingActions] = useState<Set<string>>(new Set())
+  const [hasFetched, setHasFetched] = useState(false)
 
-  // Convert and process the checkouts data
-  const userCheckouts: UserCheckout[] = checkouts.map((checkout: CheckoutData) => {
-    const dueDate = new Date(checkout.due_date || checkout.expectedReturnDate || '')
-    const checkoutDate = checkout.checkout_date || checkout.checkoutDate || ''
-    const isReturned = checkout.is_returned ?? checkout.isReturned ?? false
-    
-    const today = new Date()
-    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24))
-    
-    return {
-      id: checkout.id,
-      book_id: checkout.book_id || checkout.bookId || '',
-      user_id: checkout.user_id || checkout.userId || '',
-      checkout_date: checkoutDate,
-      due_date: checkout.due_date || checkout.expectedReturnDate || '',
-      return_date: checkout.return_date || checkout.actualReturnDate,
-      is_returned: isReturned,
-      is_overdue: !isReturned && diffDays < 0,
-      days_remaining: diffDays,
-      book: checkout.book
-    }
-  }).filter((checkout: UserCheckout) => !checkout.is_returned)
-
-  // Memoize the fetch function to avoid dependency warnings
-  const memoizedFetchMyCheckouts = useCallback(() => {
-    fetchMyCheckouts()
-  }, [fetchMyCheckouts])
-
-  // Debug logging
-  useEffect(() => {
-    console.log('MyCheckouts - Raw checkouts from hook:', checkouts)
-    console.log('MyCheckouts - Processed userCheckouts:', userCheckouts)
-  }, [checkouts, userCheckouts])
+  // Convert and process the checkouts data - memoize this calculation
+  const userCheckouts: UserCheckout[] = React.useMemo(() => {
+    return checkouts.map((checkout: CheckoutData) => {
+      const dueDate = new Date(checkout.due_date || checkout.expectedReturnDate || '')
+      const checkoutDate = checkout.checkout_date || checkout.checkoutDate || ''
+      const isReturned = checkout.is_returned ?? checkout.isReturned ?? false
+      
+      const today = new Date()
+      const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24))
+      
+      return {
+        id: checkout.id,
+        book_id: checkout.book_id || checkout.bookId || '',
+        user_id: checkout.user_id || checkout.userId || '',
+        checkout_date: checkoutDate,
+        due_date: checkout.due_date || checkout.expectedReturnDate || '',
+        return_date: checkout.return_date || checkout.actualReturnDate,
+        is_returned: isReturned,
+        is_overdue: !isReturned && diffDays < 0,
+        days_remaining: diffDays,
+        book: checkout.book
+      }
+    }).filter((checkout: UserCheckout) => !checkout.is_returned)
+  }, [checkouts])
 
   // Handle book return using the hook's checkinBook method
   const handleReturnBook = async (checkoutId: string) => {
@@ -95,7 +87,7 @@ export const MyCheckouts: React.FC = () => {
       setProcessingActions(prev => new Set(prev).add(checkoutId))
       
       await checkinBook(checkoutId)
-      await memoizedFetchMyCheckouts()
+      await fetchMyCheckouts()
       
       alert('Book returned successfully!')
     } catch (err) {
@@ -111,18 +103,31 @@ export const MyCheckouts: React.FC = () => {
     }
   }
 
-  // Fetch data on mount
+  // Fetch data on mount - only once
   useEffect(() => {
-    console.log('MyCheckouts component mounted, fetching checkouts...')
-    memoizedFetchMyCheckouts()
-  }, [memoizedFetchMyCheckouts])
+    if (!hasFetched) {
+      console.log('MyCheckouts component mounted, fetching checkouts...')
+      fetchMyCheckouts()
+      setHasFetched(true)
+    }
+  }, [fetchMyCheckouts, hasFetched])
+
+  // Debug logging - separate useEffect to avoid triggering re-renders
+  useEffect(() => {
+    console.log('MyCheckouts - Raw checkouts from hook:', checkouts)
+    console.log('MyCheckouts - Processed userCheckouts:', userCheckouts)
+  }, [checkouts.length]) // Only log when the count changes
 
   // Calculate stats
-  const stats = {
+  const stats = React.useMemo(() => ({
     total: userCheckouts.length,
     dueSoon: userCheckouts.filter(c => !c.is_overdue && c.days_remaining <= 2 && c.days_remaining >= 0).length,
     overdue: userCheckouts.filter(c => c.is_overdue).length
-  }
+  }), [userCheckouts])
+
+  const handleRefresh = useCallback(() => {
+    fetchMyCheckouts()
+  }, [fetchMyCheckouts])
 
   if (loading) {
     return (
@@ -152,7 +157,7 @@ export const MyCheckouts: React.FC = () => {
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Your Checkouts</h3>
               <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={memoizedFetchMyCheckouts}>Try Again</Button>
+              <Button onClick={handleRefresh}>Try Again</Button>
             </div>
           </CardContent>
         </Card>
@@ -166,7 +171,6 @@ export const MyCheckouts: React.FC = () => {
       <div>
         <h2 className="text-2xl font-bold text-gray-900">My Checked Out Books</h2>
         <p className="text-gray-600 mt-1">Manage your current book loans</p>
-        <p className="text-xs text-gray-400">Debug: {userCheckouts.length} checkouts found</p>
       </div>
 
       {/* Summary Stats */}
