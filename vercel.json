@@ -1,13 +1,2 @@
-{/*{
-    "crons": [
-      {
-        "path": "/api/cron/due-soon",
-        "schedule": "0 9 * * *"
-      },
-      {
-        "path": "/api/cron/overdue",
-        "schedule": "0 18 * * *"
-      }
-    ]
-  } */}
+
   
